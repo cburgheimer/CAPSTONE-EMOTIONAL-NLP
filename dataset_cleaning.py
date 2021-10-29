@@ -38,9 +38,7 @@ if __name__ == '__main__':
     dataset_with_labels = pd.read_csv(data_path,header=0, usecols = ['Sentence', 'Response'])
     data, labels = dataset_with_labels.iloc[:,0], dataset_with_labels.iloc[:,1]
     
-    data = data.apply(preprocess_text)
-    data = data.apply(word_tokenize)
-    tokenizer.fit_on_texts(data)
+    
     
 
 
