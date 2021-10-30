@@ -15,6 +15,7 @@ from tokenizer_prep import preprocess_text
 from tensorflow import keras
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.text import tokenizer_from_json
+from keras.preprocessing.sequence import pad_sequences
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 
@@ -28,17 +29,31 @@ def get_tokenizer(filename = 'tokenizer.json'):
         f.close()
     return tokenizer
 
-
-
-if __name__ == '__main__':
-    data_path = 'data_with_labels/Data_Sentences_W_ Labels.csv'
+def tokenize_label(text):
+    label_dict = {'Anticipation':0,'Anger':1, 'Disgust':2,'Fear':3, 'Joy':4, 'Sadness':5, 'Surprise':6, 'Trust':7}
+    label = [0,0,0,0,0,0,0,0]
+    text = word_tokenize(text)
+    for word in text:
+        if word in label_dict.keys():
+            label[label_dict[word]] = 1
+        if word == "None":
+            label = [0,0,0,0,0,0,0,0]
+    return label
     
-    tokenizer = get_tokenizer()
+
+def embed_tokenize_data(data_path = 'data_with_labels/Data_Sentences_W_ Labels.csv', filename = 'tokenizer.json'):
+    tokenizer = get_tokenizer(filename)
     
     dataset_with_labels = pd.read_csv(data_path,header=0, usecols = ['Sentence', 'Response'])
     data, labels = dataset_with_labels.iloc[:,0], dataset_with_labels.iloc[:,1]
     
+    data_cleaned = data.apply(preprocess_text)
+    data_cleaned = data_cleaned.apply(word_tokenize)
     
+    tokenized_labels = labels.apply(tokenize_label)
+    tokenized_data = tokenizer.texts_to_sequences(data_cleaned)
+    tokenized_data = pad_sequences(tokenized_data, padding = 'post')
     
+    return tokenized_labels, tokenized_data, tokenizer
 
 
