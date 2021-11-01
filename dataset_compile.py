@@ -7,14 +7,15 @@ ONLY RUN IF YOU WANT A COMPILED DATASET LOCALLy, IT IS OVER A MILLION SENTENCES 
 import os
 import pandas as pd
 
-csv_filename = 'data/data_large.csv'
+csv_filename = 'data/data_sampled.csv'
 datadir = 'data'
 dataframes = []
 for txt in os.listdir(datadir):
     path = os.path.join(datadir, txt)
     if os.path.isfile(path):
-        dataframe = pd.DataFrame.read_csv(path)
+        dataframe = pd.read_csv(path)
         dataframes.append(dataframe)
 
 df = pd.concat(dataframes)
-df.to_csv(csv_filename, encoding = 'utf-8')
+df_new = df.sample(4000, random_state=42)
+df_new.to_csv(csv_filename)
