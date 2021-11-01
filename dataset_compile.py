@@ -7,7 +7,7 @@ ONLY RUN IF YOU WANT A COMPILED DATASET LOCALLy, IT IS OVER A MILLION SENTENCES 
 import os
 import pandas as pd
 
-csv_filename = 'data/data_sampled.csv'
+csv_filename = 'data_with_labels/data_sampled.csv'
 datadir = 'data'
 dataframes = []
 for txt in os.listdir(datadir):
