@@ -17,5 +17,5 @@ for txt in os.listdir(datadir):
         dataframes.append(dataframe)
 
 df = pd.concat(dataframes)
-df_new = df.sample(4000, random_state=42)
-df_new.to_csv(csv_filename)
+df_new = df.sample(7000, random_state=42)
+df_new.to_csv(csv_filename,header=False,index=False)
