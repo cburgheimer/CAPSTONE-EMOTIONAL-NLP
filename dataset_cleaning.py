@@ -44,16 +44,18 @@ def tokenize_label(text):
 def embed_tokenize_data(data_path = 'data_with_labels/Data_Sentences_W_ Labels.csv', filename = 'tokenizer.json'):
     tokenizer = get_tokenizer(filename)
     
-    dataset_with_labels = pd.read_csv(data_path,header=0, usecols = ['Sentence', 'Response'])
-    data, labels = dataset_with_labels.iloc[:,0], dataset_with_labels.iloc[:,1]
+    dataset = pd.read_csv(data_path,header=0, usecols = ['Sentence', 'Response'])
+    data, labels = dataset.iloc[:,0], dataset.iloc[:,1]
     
     data_cleaned = data.apply(preprocess_text)
     data_cleaned = data_cleaned.apply(word_tokenize)
+    max_len = data_cleaned.str.len().max()
+    data_cleaned = data_cleaned.apply(' '.join)
     
     tokenized_labels = labels.apply(tokenize_label)
     tokenized_data = tokenizer.texts_to_sequences(data_cleaned)
     tokenized_data = pad_sequences(tokenized_data, padding = 'post')
     
-    return tokenized_labels, tokenized_data, tokenizer
+    return tokenized_data, tokenized_labels, tokenizer, max_len
 
 
