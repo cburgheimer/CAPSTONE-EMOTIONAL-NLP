@@ -100,7 +100,8 @@ def training_model(model, loss, metric, X_train, y_train):
     optimizer = Adamax(learning_rate=5e-05, epsilon=1e-08, decay=0.01, clipnorm=1.0)
     callback = EarlyStopping(monitor='val_loss', verbose=0, patience=3)
     model.compile(optimizer=optimizer, loss=loss, metrics=metric)
-    model.fit(X_train, y_train, validation_split=0.2, batch_size=64, epochs=100, verbose=1, callbacks=[callback])
+    history = model.fit(X_train, y_train, validation_split=0.2, batch_size=64, epochs=100, verbose=0, callbacks=[callback])
+    return model, history
 
     
 def test_model(model, X_test, y_test, labels):
@@ -122,5 +123,6 @@ def run_BERT(dataset):
     X_train, X_test, y_train, y_test = prepare_data(data_cleaned, tokenized_labels, max_len, tokenizer, label_dict)
     model, loss_array, metrics_array = build_model(transformer_model, config, max_len, labels)
     model.summary()
-    training_model(model, loss_array, metrics_array, X_train, y_train)
+    model, history = training_model(model, loss_array, metrics_array, X_train, y_train)
     test_model(model, X_test, y_test, labels)
+    return history

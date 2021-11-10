@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Oct 30 14:40:10 2021
+Created on Wed Nov 10 11:37:49 2021
 
 @author: cburgheimer
 """
@@ -35,17 +35,14 @@ def prepare_data(tokenized_data, tokenized_labels, tokenizer, labels):
         y_test.append(y_test_numpy[:,i])
         
     return X_train, X_test, y_train, y_test, vocab_size
-    
-def create_rnn_model(max_len, vocab_size, labels):
+
+def create_cnn_model(max_len, vocab_size, labels):
     main_input = tf.keras.Input(shape=(max_len,), dtype='int32', name='main_input')
     x = tf.keras.layers.Embedding(input_dim=vocab_size, output_dim=128, input_length=25)(main_input)
-    x = tf.keras.layers.GRU(1024, return_sequences=True)(x)
-    x = tf.keras.layers.Dropout(0.2)(x)
-    x = tf.keras.layers.MaxPooling1D(pool_size=8)(x)
-    x = tf.keras.layers.LSTM(1024, return_sequences=True)(x)
-    x = tf.keras.layers.LSTM(1024, return_sequences=True)(x)
-    x = tf.keras.layers.LSTM(1024)(x)
-    x = tf.keras.layers.Dropout(0.2)(x)
+    x = tf.keras.layers.Conv1D(128, 5, padding='valid', activation='relu')(x)
+    x = tf.keras.layers.GlobalMaxPooling1D()
+    x = tf.keras.layers.Dropout(0.2, seed=42)
+    x = tf.keras.layers.Conv1D(8, 1)(x)
     
     output_array = [] 
     metrics_array = {}
@@ -70,12 +67,11 @@ def test_model(model, X_test, y_test, labels):
         print(dense_layer, 'Accuracy: ',str(evaluation[i+9]), '\n')
     print('Average Accuracy:', str(np.sum(accuracies)/8))
 
-def run_rnn_model(tokenized_data, tokenized_labels, tokenizer, max_len, labels):
+def run_cnn_model(tokenized_data, tokenized_labels, tokenizer, max_len, labels):
     X_train, X_test, y_train, y_test, vocab_size = prepare_data(tokenized_data, tokenized_labels, tokenizer, labels)
-    model = create_rnn_model(max_len, vocab_size, labels)
+    model = create_cnn_model(max_len, vocab_size, labels)
     model.summary()
     callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', verbose=0, patience=3)
-    history = model.fit(X_train, y_train, validation_split=0.2, batch_size=128, epochs=100, verbose = 0, callbacks=[callback])
+    history = model.fit(X_train, y_train, validation_split=0.2, batch_size=128, epochs=10, verbose = 1, callbacks=[callback])
     test_model(model, X_test, y_test, labels)
-    
     

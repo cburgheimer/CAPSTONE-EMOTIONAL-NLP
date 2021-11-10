@@ -12,7 +12,7 @@ import sys
 label_dict = {'Anticipation':0,'Anger':1, 'Disgust':2,'Fear':3, 'Joy':4, 'Sadness':5, 'Surprise':6, 'Trust':7}
 tokenized_data, tokenized_labels, tokenizer, max_len = embed_tokenize_data()
 
-def measure_performance(y_pred, y_test, THRESHOLD):
+'''def measure_performance(y_pred, y_test, THRESHOLD):
     y_test_output = []
     y_test_numpy = np.array(y_test.to_list())
     for i in range(len(label_dict.keys())):
@@ -25,28 +25,24 @@ def measure_performance(y_pred, y_test, THRESHOLD):
         y_pred[col_idx][y_pred[col_idx]<THRESHOLD] = 0
         f1_score_results.append(f1_score(y_test_output[col_idx], y_pred[col_idx], average='macro', zero_division=0))
         print(classification_report(y_test_output[col_idx], y_pred[col_idx], zero_division=0))
-    print('Total :',np.sum(f1_score_results))
+    print('Total :',np.sum(f1_score_results))'''
     
 
-#Bidirectional Neural Network
-
-#Feature Engineering Model
-
 #Convolutional Neural Network
+'''from models.cnn_model import *
+run_cnn_model(tokenized_data, tokenized_labels, tokenizer, max_len, label_dict.keys())'''
 
 #Recurrent Neural Network
-from models.rnn_model import *
-run_model(tokenized_data, tokenized_labels, tokenizer, max_len, label_dict.keys())
+'''from models.rnn_model import *
+run_rnn_model(tokenized_data, tokenized_labels, tokenizer, max_len, label_dict.keys())'''
 
 #Encoder-Decoder w/ attention model
 
-#Endocer-Decoder w/o attention model
-
-#Basic Transformer architecture model
 
 #BERT Fine-Tuned model
 from models.bert_model import *
 dataset = pd.read_csv('data_with_labels/Data_Sentences_W_ Labels.csv',header=0, usecols = ['Sentence', 'Response'])
-run_BERT(dataset)
+history = run_BERT(dataset)
 
 #GPT-Neo Fine-Tuned model
+
