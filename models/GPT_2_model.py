@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Oct 30 14:57:03 2021
+Created on Wed Nov 10 11:37:50 2021
 
 @author: cburgheimer
 """
@@ -10,8 +10,8 @@ import re
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from sklearn.model_selection import train_test_split
-from transformers import TFBertModel,  BertConfig, BertTokenizer
-from tensorflow.keras.layers import Input, Dropout, Dense
+from transformers import TFGPT2Model,  GPT2Config, GPT2Tokenizer
+from tensorflow.keras.layers import Input, Dropout, Dense, GlobalAveragePooling1D
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adamax
 from tensorflow.keras.initializers import TruncatedNormal
@@ -55,19 +55,21 @@ def clean_data(dataset):
     data_cleaned = data_cleaned.str.split()
     return data_cleaned, tokenized_labels, max_len
 
-def setup_bert(max_len, model_name = 'bert-base-uncased'):
-    config = BertConfig.from_pretrained(model_name)
+def setup_gpt(max_len, model_name = 'gpt2'):
+    config = GPT2Config.from_pretrained(model_name)
     config.output_hidden_states = False
-    tokenizer = BertTokenizer.from_pretrained(model_name, config = config)
-    transformer_model = TFBertModel.from_pretrained(model_name, config = config)
+    tokenizer = GPT2Tokenizer.from_pretrained(model_name, config = config)
+    tokenizer.pad_token = tokenizer.eos_token
+    transformer_model = TFGPT2Model.from_pretrained(model_name, config = config)
     return transformer_model, tokenizer, config
 
 def prepare_data(data_cleaned, tokenized_labels, max_len, tokenizer, labels):  
-    encodings = tokenizer(data_cleaned.to_list(), max_length=max_len, is_split_into_words=True, truncation=True, padding=True, verbose = True)
+    encodings =  tokenizer(data_cleaned.to_list(), max_length=max_len, is_split_into_words=True, padding = True, truncation = True, verbose=True)
     input_ids = encodings['input_ids']
-    X_train, X_test, y_train, y_test = train_test_split(input_ids, tokenized_labels, test_size=0.2, random_state = 42)
-    X_train = {'input_ids': np.array(X_train)}
-    X_test = {'input_ids': np.array(X_test)}
+    attention_masks = encodings['attention_mask']
+    X_train, X_test, y_train, y_test, attention_train, attention_test = train_test_split(input_ids, tokenized_labels, attention_masks, test_size=0.2, random_state = 42)
+    X_train = {'input_ids': np.array(X_train), 'attention_mask': np.array(attention_train)}
+    X_test = {'input_ids': np.array(X_test), 'attention_mask': np.array(attention_test)}
     y_train_output = {}
     y_train_numpy = np.array(y_train.to_list())
     for i in range(len(labels)):
@@ -82,19 +84,22 @@ def prepare_data(data_cleaned, tokenized_labels, max_len, tokenizer, labels):
     return X_train, X_test, y_train, y_test
 
 def build_model(transformer_model, config, max_len, labels):
-    BERT = transformer_model.layers[0]
+    GPT2 = transformer_model
     input_ids = Input(shape=(max_len,), dtype='int32', name='input_ids')
-    inputs = input_ids
-    bert_model = BERT(inputs)[1]
-    dropout_layer = Dropout(config.hidden_dropout_prob, name='pooled_outputs')
-    pooled_outputs = dropout_layer(bert_model, training=False)
+    attention_mask = Input(shape=(max_len,), name='attention_mask', dtype='int32')
+    inputs = {'input_ids': input_ids, 'attention_mask': attention_mask}
+    GPT_model = GPT2(input_ids = inputs['input_ids'], attention_mask = inputs['attention_mask'])[0]
+    
+    pooled_GPT_model = GlobalAveragePooling1D()(GPT_model)
+    dropout_layer = Dropout(config.resid_pdrop, name='pooled_outputs')
+    gpt_outputs = dropout_layer(pooled_GPT_model, training=False)
     
     outputs = []
     metrics_array = {}
     loss_array = {}
     for i, dense_layer in enumerate(labels):
         output_name = dense_layer
-        binary_output = Dense(1, activation='sigmoid', kernel_initializer=TruncatedNormal(stddev=config.initializer_range), name=output_name)(pooled_outputs)
+        binary_output = Dense(1, activation='sigmoid', kernel_initializer=TruncatedNormal(stddev=config.initializer_range), name=output_name)(gpt_outputs)
         outputs.append(binary_output)
         metrics_array[output_name] = BinaryAccuracy()
         loss_array[output_name] = BinaryCrossentropy()
@@ -119,12 +124,15 @@ def test_model(model, X_test, y_test, labels):
         print(dense_layer, 'Accuracy: ',str(evaluation[i+9]), '\n')
     print('Average Accuracy:', str(np.sum(accuracies)/8))
     
-def run_BERT(dataset):
+def run_GPT(dataset, model_name = None):
     label_dict = {'Anticipation':0,'Anger':1, 'Disgust':2,'Fear':3, 'Joy':4, 'Sadness':5, 'Surprise':6, 'Trust':7}
     labels = list(label_dict.keys())
     
     data_cleaned, tokenized_labels, max_len = clean_data(dataset)
-    transformer_model, tokenizer, config = setup_bert(max_len)
+    if model_name is not None:
+        transformer_model, tokenizer, config = setup_gpt(max_len, model_name)
+    else:
+        transformer_model, tokenizer, config = setup_gpt(max_len)
     X_train, X_test, y_train, y_test = prepare_data(data_cleaned, tokenized_labels, max_len, tokenizer, labels)
     model, loss_array, metrics_array = build_model(transformer_model, config, max_len, labels)
     model.summary()

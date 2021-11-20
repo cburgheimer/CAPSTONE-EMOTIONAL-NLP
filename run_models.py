@@ -7,10 +7,9 @@ from dataset_cleaning import *
 from sklearn.metrics import classification_report, accuracy_score, f1_score
 import numpy as np
 import pandas as pd
-import os
-import sys
+'''
 label_dict = {'Anticipation':0,'Anger':1, 'Disgust':2,'Fear':3, 'Joy':4, 'Sadness':5, 'Surprise':6, 'Trust':7}
-tokenized_data, tokenized_labels, tokenizer, max_len = embed_tokenize_data()
+tokenized_data, tokenized_labels, tokenizer, max_len = embed_tokenize_data()'''
 
 '''def measure_performance(y_pred, y_test, THRESHOLD):
     y_test_output = []
@@ -40,9 +39,11 @@ run_rnn_model(tokenized_data, tokenized_labels, tokenizer, max_len, label_dict.k
 
 
 #BERT Fine-Tuned model
-from models.bert_model import *
+'''from models.bert_model import *
 dataset = pd.read_csv('data_with_labels/Data_Sentences_W_ Labels.csv',header=0, usecols = ['Sentence', 'Response'])
-history = run_BERT(dataset)
+bert_model, history = run_BERT(dataset)'''
 
-#GPT-Neo Fine-Tuned model
-
+#GPT-2 Fine-Tuned model
+from models.GPT_2_model import *
+dataset = pd.read_csv('data_with_labels/Data_Sentences_W_ Labels.csv',header=0, usecols = ['Sentence', 'Response'])
+gpt_model, gpt_history = run_GPT(dataset)

@@ -48,8 +48,7 @@ def embed_tokenize_data(data_path = 'data_with_labels/Data_Sentences_W_ Labels.c
     data, labels = dataset.iloc[:,0], dataset.iloc[:,1]
     
     data_cleaned = data.apply(preprocess_text)
-    data_cleaned = data_cleaned.apply(word_tokenize)
-    max_len = data_cleaned.str.len().max()
+    max_len = data_cleaned.str.split().str.len().max()
     data_cleaned = data_cleaned.apply(' '.join)
     
     tokenized_labels = labels.apply(tokenize_label)

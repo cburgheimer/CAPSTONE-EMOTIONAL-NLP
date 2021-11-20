@@ -74,4 +74,5 @@ def run_cnn_model(tokenized_data, tokenized_labels, tokenizer, max_len, labels):
     callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', verbose=0, patience=3)
     history = model.fit(X_train, y_train, validation_split=0.2, batch_size=128, epochs=10, verbose = 1, callbacks=[callback])
     test_model(model, X_test, y_test, labels)
+    return model, history
     
