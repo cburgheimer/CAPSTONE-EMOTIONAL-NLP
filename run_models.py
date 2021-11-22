@@ -35,15 +35,12 @@ run_cnn_model(tokenized_data, tokenized_labels, tokenizer, max_len, label_dict.k
 '''from models.rnn_model import *
 run_rnn_model(tokenized_data, tokenized_labels, tokenizer, max_len, label_dict.keys())'''
 
-#Encoder-Decoder w/ attention model
-
-
 #BERT Fine-Tuned model
-'''from models.bert_model import *
+from models.bert_model import *
 dataset = pd.read_csv('data_with_labels/Data_Sentences_W_ Labels.csv',header=0, usecols = ['Sentence', 'Response'])
-bert_model, history = run_BERT(dataset)'''
+bert_model, history = run_BERT(dataset)
 
 #GPT-2 Fine-Tuned model
-from models.GPT_2_model import *
+'''from models.GPT_2_model import *
 dataset = pd.read_csv('data_with_labels/Data_Sentences_W_ Labels.csv',header=0, usecols = ['Sentence', 'Response'])
-gpt_model, gpt_history = run_GPT(dataset)
+gpt_model, gpt_history = run_GPT(dataset)'''

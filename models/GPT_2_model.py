@@ -17,8 +17,16 @@ from tensorflow.keras.optimizers import Adamax
 from tensorflow.keras.initializers import TruncatedNormal
 from tensorflow.keras.losses import BinaryCrossentropy
 from tensorflow.keras.metrics import BinaryAccuracy
-from  tensorflow.keras.callbacks import EarlyStopping
+from  tensorflow.keras.callbacks import EarlyStopping, LearningRateScheduler, TensorBoard
 
+
+def decay(epoch):
+    if epoch < 3:
+        return 5e-3
+    elif epoch >= 3 and epoch < 7:
+        return 5e-4
+    else:
+        return 5e-5
 
 def preprocess_text(text):
     text = re.sub("[^a-zA-Z]", ' ', text)
@@ -103,14 +111,14 @@ def build_model(transformer_model, config, max_len, labels):
         outputs.append(binary_output)
         metrics_array[output_name] = BinaryAccuracy()
         loss_array[output_name] = BinaryCrossentropy()
-    model = Model(inputs=inputs, outputs=outputs, name='BERT_MultiLabel_MultiClass')
+    model = Model(inputs=inputs, outputs=outputs, name='GPT2_MultiLabel_MultiClass')
     return model, loss_array, metrics_array
 
 def training_model(model, loss, metric, X_train, y_train):
     optimizer = Adamax(learning_rate=5e-05, epsilon=1e-08, decay=0.01, clipnorm=1.0)
-    '''callback = EarlyStopping(monitor='val_loss', verbose=0, patience=3)'''
+    callbacks = [EarlyStopping(monitor='val_loss', verbose=0, patience=3), TensorBoard(log_dir='./gpt2_logs'), LearningRateScheduler(decay)]
     model.compile(optimizer=optimizer, loss=loss, metrics=metric)
-    history = model.fit(X_train, y_train, validation_split=0.2, batch_size=64, epochs=10, verbose=1)
+    history = model.fit(X_train, y_train, validation_split=0.2, batch_size=64, epochs=50, verbose=0, callbacks =  callbacks)
     return model, history
 
     

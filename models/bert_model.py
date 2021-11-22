@@ -6,18 +6,19 @@ Created on Sat Oct 30 14:57:03 2021
 """
 import pandas as pd
 import numpy as np
+import os
 import re
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from sklearn.model_selection import train_test_split
 from transformers import TFBertModel,  BertConfig, BertTokenizer
-from tensorflow.keras.layers import Input, Dropout, Dense
+from tensorflow.keras.layers import Input, Dropout, Dense, GlobalAveragePooling1D
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adamax
 from tensorflow.keras.initializers import TruncatedNormal
 from tensorflow.keras.losses import BinaryCrossentropy
 from tensorflow.keras.metrics import BinaryAccuracy
-from  tensorflow.keras.callbacks import EarlyStopping
+from  tensorflow.keras.callbacks import EarlyStopping, LearningRateScheduler, TensorBoard
 
 
 def preprocess_text(text):
@@ -28,6 +29,13 @@ def preprocess_text(text):
     text = ' '.join(text)
     return text
 
+def decay(epoch):
+    if epoch < 3:
+        return 5e-3
+    elif epoch >= 3 and epoch < 7:
+        return 5e-4
+    else:
+        return 5e-5
 
 def tokenize_label(text):
     label_dict = {'Anticipation':0,'Anger':1, 'Disgust':2,'Fear':3, 'Joy':4, 'Sadness':5, 'Surprise':6, 'Trust':7}
@@ -63,11 +71,12 @@ def setup_bert(max_len, model_name = 'bert-base-uncased'):
     return transformer_model, tokenizer, config
 
 def prepare_data(data_cleaned, tokenized_labels, max_len, tokenizer, labels):  
-    encodings = tokenizer(data_cleaned.to_list(), max_length=max_len, is_split_into_words=True, truncation=True, padding=True, verbose = True)
+    encodings =  tokenizer(data_cleaned.to_list(), max_length=max_len, is_split_into_words=True, padding = True, truncation = True, verbose=True)
     input_ids = encodings['input_ids']
-    X_train, X_test, y_train, y_test = train_test_split(input_ids, tokenized_labels, test_size=0.2, random_state = 42)
-    X_train = {'input_ids': np.array(X_train)}
-    X_test = {'input_ids': np.array(X_test)}
+    attention_masks = encodings['attention_mask']
+    X_train, X_test, y_train, y_test, attention_train, attention_test = train_test_split(input_ids, tokenized_labels, attention_masks, test_size=0.2, random_state = 42)
+    X_train = {'input_ids': np.array(X_train), 'attention_mask': np.array(attention_train)}
+    X_test = {'input_ids': np.array(X_test), 'attention_mask': np.array(attention_test)}
     y_train_output = {}
     y_train_numpy = np.array(y_train.to_list())
     for i in range(len(labels)):
@@ -84,10 +93,12 @@ def prepare_data(data_cleaned, tokenized_labels, max_len, tokenizer, labels):
 def build_model(transformer_model, config, max_len, labels):
     BERT = transformer_model.layers[0]
     input_ids = Input(shape=(max_len,), dtype='int32', name='input_ids')
-    inputs = input_ids
-    bert_model = BERT(inputs)[1]
+    attention_mask = Input(shape=(max_len,), name='attention_mask', dtype='int32')
+    inputs = {'input_ids': input_ids, 'attention_mask': attention_mask}
+    bert_model = BERT(input_ids = inputs['input_ids'], attention_mask = inputs['attention_mask'])[0]
+    p_bert_model = GlobalAveragePooling1D()(bert_model)
     dropout_layer = Dropout(config.hidden_dropout_prob, name='pooled_outputs')
-    pooled_outputs = dropout_layer(bert_model, training=False)
+    pooled_outputs = dropout_layer(p_bert_model, training=False)
     
     outputs = []
     metrics_array = {}
@@ -103,9 +114,9 @@ def build_model(transformer_model, config, max_len, labels):
 
 def training_model(model, loss, metric, X_train, y_train):
     optimizer = Adamax(learning_rate=5e-05, epsilon=1e-08, decay=0.01, clipnorm=1.0)
-    '''callback = EarlyStopping(monitor='val_loss', verbose=0, patience=3)'''
+    callbacks = [EarlyStopping(monitor='val_loss', verbose=0, patience=3), TensorBoard(log_dir='./bert_logs'), LearningRateScheduler(decay)]
     model.compile(optimizer=optimizer, loss=loss, metrics=metric)
-    history = model.fit(X_train, y_train, validation_split=0.2, batch_size=64, epochs=10, verbose=1)
+    history = model.fit(X_train, y_train, validation_split=0.2, batch_size=64, epochs=50, verbose=0, callbacks = callbacks)
     return model, history
 
     
