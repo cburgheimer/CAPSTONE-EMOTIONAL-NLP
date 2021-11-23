@@ -114,7 +114,7 @@ def build_model(transformer_model, config, max_len, labels):
 
 def training_model(model, loss, metric, X_train, y_train):
     optimizer = Adamax(learning_rate=5e-05, epsilon=1e-08, decay=0.01, clipnorm=1.0)
-    callbacks = [EarlyStopping(monitor='val_loss', verbose=0, patience=3), TensorBoard(log_dir='./bert_logs'), LearningRateScheduler(decay)]
+    callbacks = [EarlyStopping(monitor='val_loss', verbose=0, patience=3), TensorBoard(log_dir='/logs/bert_logs'), LearningRateScheduler(decay)]
     model.compile(optimizer=optimizer, loss=loss, metrics=metric)
     history = model.fit(X_train, y_train, validation_split=0.2, batch_size=64, epochs=50, verbose=0, callbacks = callbacks)
     return model, history
@@ -130,12 +130,15 @@ def test_model(model, X_test, y_test, labels):
         print(dense_layer, 'Accuracy: ',str(evaluation[i+9]), '\n')
     print('Average Accuracy:', str(np.sum(accuracies)/8))
     
-def run_BERT(dataset):
+def run_BERT(dataset, model_name = None):
     label_dict = {'Anticipation':0,'Anger':1, 'Disgust':2,'Fear':3, 'Joy':4, 'Sadness':5, 'Surprise':6, 'Trust':7}
     labels = list(label_dict.keys())
     
     data_cleaned, tokenized_labels, max_len = clean_data(dataset)
-    transformer_model, tokenizer, config = setup_bert(max_len)
+    if model_name is not None:
+        transformer_model, tokenizer, config = setup_bert(max_len, model_name)
+    else:
+        transformer_model, tokenizer, config = setup_bert(max_len)
     X_train, X_test, y_train, y_test = prepare_data(data_cleaned, tokenized_labels, max_len, tokenizer, labels)
     model, loss_array, metrics_array = build_model(transformer_model, config, max_len, labels)
     model.summary()

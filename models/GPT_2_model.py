@@ -116,7 +116,7 @@ def build_model(transformer_model, config, max_len, labels):
 
 def training_model(model, loss, metric, X_train, y_train):
     optimizer = Adamax(learning_rate=5e-05, epsilon=1e-08, decay=0.01, clipnorm=1.0)
-    callbacks = [EarlyStopping(monitor='val_loss', verbose=0, patience=3), TensorBoard(log_dir='./gpt2_logs'), LearningRateScheduler(decay)]
+    callbacks = [EarlyStopping(monitor='val_loss', verbose=0, patience=3), TensorBoard(log_dir='logs/gpt2_logs'), LearningRateScheduler(decay)]
     model.compile(optimizer=optimizer, loss=loss, metrics=metric)
     history = model.fit(X_train, y_train, validation_split=0.2, batch_size=64, epochs=50, verbose=0, callbacks =  callbacks)
     return model, history
